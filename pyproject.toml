@@ -1,0 +1,19 @@
+[tool.poetry]
+name = "evallm"
+version = "0.1.0"
+description = ""
+authors = ["wjlee <wjlee.ling@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.10, <3.12"
+pandas = "^2.2.2"
+langchain = "^0.2.5"
+langchain-openai = "^0.1.9"
+python-dotenv = "^1.0.1"
+langchain-anthropic = "^0.1.15"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
