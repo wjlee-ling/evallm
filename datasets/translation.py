@@ -13,6 +13,7 @@ from langchain_core.prompts import (
 
 load_dotenv()
 
+DELIMITER = "\t"
 client = anthropic.Anthropic()
 
 
@@ -35,8 +36,14 @@ def _format_examples(examples: list[dict], sep: str):
     )
 
 
+def _parse_response(response, columns: list) -> list:
+    parsed = response.content[0].text.split(DELIMITER)
+    new_row = {col: resp for col, resp in zip(columns, parsed)}
+    return new_row
+
+
 def translate_df(df, columns, prompt) -> pd.DataFrame:
-    responses = []
+    new_rows = []
     if columns is None:
         # If columns are not specified, use all columns
         columns = list(range(len(df.columns)))
@@ -45,22 +52,24 @@ def translate_df(df, columns, prompt) -> pd.DataFrame:
         row_as_string = concatenate_columns(row, columns)
         final_prompt = str(prompt.format(input=row_as_string)).lstrip("Human: ")
         response = _complete_anthropic(final_prompt)
-        responses.append(response)
+        parsed = _parse_response(response, columns)
+        new_rows.append(parsed)
 
-    return responses
+    new_df = pd.DataFrame(new_rows, columns=columns)
+    return new_df
 
 
 def main(path, columns, headless):
 
     _examples = [
         {
-            "input": "/t".join(
+            "input": DELIMITER.join(
                 [
                     "In which year was the seminal Human Development Report published?",
                     "It was published in 1990.",
                 ]
             ),
-            "output": "/t".join(
+            "output": DELIMITER.join(
                 [
                     "중요한 인간 개발 보고서(Human Development Report)는 몇 년도에 발행되었나요?",
                     "보고서는 1990년에 발행되었습니다.",
@@ -68,13 +77,13 @@ def main(path, columns, headless):
             ),
         },
         {
-            "input": "/t".join(
+            "input": DELIMITER.join(
                 [
                     "Sam wants to go to bed.",
                     "Tesla makes the coolest car in the world.",
                 ]
             ),
-            "output": "/t".join(
+            "output": DELIMITER.join(
                 [
                     "민호는 자려고 합니다.",
                     "기아는 세상에서 가장 멋진 차를 만듭니다.",
@@ -117,7 +126,7 @@ def main(path, columns, headless):
     template = ChatPromptTemplate.from_template(_template)
     prompt = template.partial(examples=_few_shot_prompt)
 
-    df = pd.read_csv(path, header=None if headless else 0)
+    df = pd.read_csv(path, header=None if headless else 0)[:5]
     response = translate_df(df, columns, prompt)
     return response
 
