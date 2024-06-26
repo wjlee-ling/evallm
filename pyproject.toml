@@ -12,6 +12,7 @@ langchain = "^0.2.5"
 langchain-openai = "^0.1.9"
 python-dotenv = "^1.0.1"
 langchain-anthropic = "^0.1.15"
+anthropic = "^0.29.0"
 
 
 [build-system]
