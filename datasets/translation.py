@@ -18,7 +18,7 @@ DELIMITER = "\t"
 client = anthropic.Anthropic()
 
 
-def _complete_anthropic(prompt: str):
+def _complete_anthropic(prompt: str, system_message: str = None):
     _prompt = [
         # {"role": "system", "content": "Follow the following instructions"},
         {"role": "user", "content": prompt},
@@ -27,6 +27,7 @@ def _complete_anthropic(prompt: str):
         model="claude-3-5-sonnet-20240620",
         max_tokens=1024,
         messages=_prompt,
+        # system=system_message,
     )
     return messages
 
@@ -47,12 +48,14 @@ def translate_df(df, columns, prompt) -> pd.DataFrame:
     new_rows = []
     if columns is None:
         # If columns are not specified, use all columns
-        columns = list(range(len(df.columns)))
+        columns = list(map(str, range(len(df.columns))))
 
+    instruct_prompt = prompt.lstrip("Human: ")
     for idx, row in tqdm(df.iterrows()):
-        row_as_string = concatenate_columns(row, columns)
-        final_prompt = str(prompt.format(input=row_as_string)).lstrip("Human: ")
-        response = _complete_anthropic(final_prompt)
+        row_as_string = "<input>\n" + concatenate_columns(row, columns) + "\n</input>\n"
+        response = _complete_anthropic(
+            prompt=row_as_string, system_message=instruct_prompt
+        )
         parsed = _parse_response(response, columns)
         new_rows.append(parsed)
 
@@ -117,34 +120,27 @@ def main(path, columns, headless):
 
     <examples>
     {examples}
-    </examples>
-
-    <input>
-    {input}
-    </input>"""
+    </examples>"""
 
     _few_shot_prompt = _format_examples(_examples)
-    template = ChatPromptTemplate.from_template(_template)
-    prompt = template.partial(examples=_few_shot_prompt)
+    instruct_template = ChatPromptTemplate.from_template(_template)
+    instruct_prompt = instruct_template.format(examples=_few_shot_prompt)
 
     for p in tqdm(load_from_path(path)):
         if p.suffix == ".csv":
             df = pd.read_csv(p, header=None if headless else 0)
-            if headless:
-                df.columns = [str(col) for col in df.columns]
-            new_df = translate_df(df, columns, prompt)
-
-            # fill in missing columns
-            new_df = new_df.combine_first(df)
-            new_df.to_csv(p.with_suffix(".translated.csv"), index=False)
-
         elif p.suffix == ".xlsx":
-            df = pd.read_excel(p, header=None if headless else 0)
-            if headless:
-                df.columns = [str(col) for col in df.columns]
-            new_df = translate_df(df, columns, prompt)
-            new_df = new_df.combine_first(df)
-            new_df.to_csv(p.with_suffix(".translated.csv"), index=False)
+            df = pd.read_excel(p, header=None if headless else 0)[:3]
+
+        if headless:
+            df.columns = [str(col) for col in df.columns]
+        elif not headless and columns is None:
+            columns = df.columns  # use all the columns
+
+        new_df = translate_df(df, columns, instruct_prompt)
+        # fill in missing columns
+        new_df = new_df.combine_first(df)
+        new_df.to_csv(p.with_suffix(".translated.csv"), index=False)
         import time
 
         time.sleep(60)
