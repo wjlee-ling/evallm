@@ -14,13 +14,13 @@ load_dotenv()
 
 _examples = [
     {
-        "input": "//".join(
+        "input": "/t".join(
             [
                 "In which year was the seminal Human Development Report published?",
                 "It was published in 1990.",
             ]
         ),
-        "output": "//".join(
+        "output": "/t".join(
             [
                 "중요한 인간 개발 보고서(Human Development Report)는 몇 년도에 발행되었나요?",
                 "보고서는 1990년에 발행되었습니다.",
@@ -28,13 +28,13 @@ _examples = [
         ),
     },
     {
-        "input": "//".join(
+        "input": "/t".join(
             [
                 "Sam wants to go to bed.",
                 "Tesla makes the coolest car in the world.",
             ]
         ),
-        "output": "//".join(
+        "output": "/t".join(
             [
                 "민호는 자려고 합니다.",
                 "기아는 세상에서 가장 멋진 차를 만듭니다.",
@@ -65,15 +65,15 @@ _instructions = """당신은 한국어 번역가로서 영어 문장을 한국�
 </guidelines>
 
 <examples>
-input: In which year was the seminal Human Development Report published?//It was published in 1990.
-output: 중요한 인간 개발 보고서(Human Development Report)는 몇 년도에 발행되었나요?//보고서는 1990년에 발행되었습니다.
+input: In which year was the seminal Human Development Report published?/tIt was published in 1990.
+output: 중요한 인간 개발 보고서(Human Development Report)는 몇 년도에 발행되었나요?/t보고서는 1990년에 발행되었습니다.
 ---
-input: Sam wants to go to bed.//Tesla makes the coolest car in the world.
-output: 민호는 자려고 합니다.//기아는 세상에서 가장 멋진 차를 만듭니다.
+input: Sam wants to go to bed./tTesla makes the coolest car in the world.
+output: 민호는 자려고 합니다./t기아는 세상에서 가장 멋진 차를 만듭니다.
 </examples>"""
 
 final_prompt = ChatPromptTemplate.from_messages(
-    [("system", _instructions), _few_shot_prompt, ("human", "<input> {input} </input>")]
+    [("system", _instructions), _few_shot_prompt, ("human", "<input>{input}</input>")]
 )
 
 # final_prompt = ChatPromptTemplate.from_template(_instructions)
@@ -86,7 +86,7 @@ llm = ChatOpenAI(model="gpt-4o", temperature=0.1)
 chain = final_prompt | llm
 output = chain.invoke(
     {
-        "input": "//".join(
+        "input": "/t".join(
             [
                 "The quick brown fox jumps over the lazy dog.",
                 "The passage was coined by Noam Chomsky.",
