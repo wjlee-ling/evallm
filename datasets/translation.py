@@ -1,4 +1,4 @@
-from datasets.utils import concatenate_columns
+from datasets.utils import concatenate_columns, load_from_path
 import anthropic
 import pandas as pd
 
@@ -30,8 +30,8 @@ def _complete_anthropic(prompt: str):
     return messages
 
 
-def _format_examples(examples: list[dict], sep: str):
-    return sep.join(
+def _format_examples(examples: list[dict]):
+    return "\n\n".join(
         [f"user: {ex['input']}\nassistant: {ex['output']}" for ex in examples]
     )
 
@@ -122,13 +122,19 @@ def main(path, columns, headless):
     {input}
     </input>"""
 
-    _few_shot_prompt = _format_examples(_examples, sep="\n\n")
+    _few_shot_prompt = _format_examples(_examples)
     template = ChatPromptTemplate.from_template(_template)
     prompt = template.partial(examples=_few_shot_prompt)
 
-    df = pd.read_csv(path, header=None if headless else 0)[:5]
-    response = translate_df(df, columns, prompt)
-    return response
+    for p in load_from_path(path):
+        df = pd.read_csv(p, header=None if headless else 0)
+        if headless:
+            df.columns = [str(col) for col in df.columns]
+        new_df = translate_df(df, columns, prompt)
+
+        # fill in missing columns
+        new_df = new_df.combine_first(df)
+        new_df.to_csv(p.with_suffix(".translated.csv"), index=False)
 
 
 # chain = final_prompt | llm
@@ -147,8 +153,7 @@ if __name__ == "__main__":
     parser = ArgumentParser()
     parser.add_argument("path", type=str)
     parser.add_argument("--headless", action="store_true")
-    parser.add_argument("--columns", type=list)
+    parser.add_argument("--columns", nargs="+")
     args = parser.parse_args()
-
     output = main(path=args.path, columns=args.columns, headless=args.headless)
     print(output)
