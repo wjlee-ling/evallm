@@ -10,6 +10,7 @@ from langchain_core.prompts import (
     FewShotChatMessagePromptTemplate,
     ChatPromptTemplate,
 )
+from tqdm import tqdm
 
 load_dotenv()
 
@@ -48,7 +49,7 @@ def translate_df(df, columns, prompt) -> pd.DataFrame:
         # If columns are not specified, use all columns
         columns = list(range(len(df.columns)))
 
-    for idx, row in df.iterrows():
+    for idx, row in tqdm(df.iterrows()):
         row_as_string = concatenate_columns(row, columns)
         final_prompt = str(prompt.format(input=row_as_string)).lstrip("Human: ")
         response = _complete_anthropic(final_prompt)
@@ -126,15 +127,27 @@ def main(path, columns, headless):
     template = ChatPromptTemplate.from_template(_template)
     prompt = template.partial(examples=_few_shot_prompt)
 
-    for p in load_from_path(path):
-        df = pd.read_csv(p, header=None if headless else 0)
-        if headless:
-            df.columns = [str(col) for col in df.columns]
-        new_df = translate_df(df, columns, prompt)
+    for p in tqdm(load_from_path(path)):
+        if p.suffix == ".csv":
+            df = pd.read_csv(p, header=None if headless else 0)
+            if headless:
+                df.columns = [str(col) for col in df.columns]
+            new_df = translate_df(df, columns, prompt)
 
-        # fill in missing columns
-        new_df = new_df.combine_first(df)
-        new_df.to_csv(p.with_suffix(".translated.csv"), index=False)
+            # fill in missing columns
+            new_df = new_df.combine_first(df)
+            new_df.to_csv(p.with_suffix(".translated.csv"), index=False)
+
+        elif p.suffix == ".xlsx":
+            df = pd.read_excel(p, header=None if headless else 0)
+            if headless:
+                df.columns = [str(col) for col in df.columns]
+            new_df = translate_df(df, columns, prompt)
+            new_df = new_df.combine_first(df)
+            new_df.to_csv(p.with_suffix(".translated.csv"), index=False)
+        import time
+
+        time.sleep(60)
 
 
 # chain = final_prompt | llm
@@ -156,4 +169,3 @@ if __name__ == "__main__":
     parser.add_argument("--columns", nargs="+")
     args = parser.parse_args()
     output = main(path=args.path, columns=args.columns, headless=args.headless)
-    print(output)
