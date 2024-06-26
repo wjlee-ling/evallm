@@ -62,20 +62,19 @@ _instructions = """당신은 한국어 번역가로서 영어 문장을 한국�
 6. 기업 이름은 유사 업종의 가장 유명한 한국 기업으로 변경합니다. 
 7. 한국어의 격식체를 사용합니다. 격식체란 다음과 같이 '~있습니다', '~니다', '~할까요?' 등의 문장 끝말을 사용하는 것을 말합니다.
 8. 전문 용어나 어려운 용어는 영어 원문 단어를 중괄호 안에 넣어 번역하세요. 예를 들어 '항정신성 약물(Antisychotics)은 ...'와 같이 표기합니다.
-</guidelines>
+</guidelines>"""
 
-<examples>
-input: In which year was the seminal Human Development Report published?/tIt was published in 1990.
-output: 중요한 인간 개발 보고서(Human Development Report)는 몇 년도에 발행되었나요?/t보고서는 1990년에 발행되었습니다.
----
-input: Sam wants to go to bed./tTesla makes the coolest car in the world.
-output: 민호는 자려고 합니다./t기아는 세상에서 가장 멋진 차를 만듭니다.
-</examples>"""
+# <examples>
+# input: In which year was the seminal Human Development Report published?/tIt was published in 1990.
+# output: 중요한 인간 개발 보고서(Human Development Report)는 몇 년도에 발행되었나요?/t보고서는 1990년에 발행되었습니다.
+# ---
+# input: Sam wants to go to bed./tTesla makes the coolest car in the world.
+# output: 민호는 자려고 합니다./t기아는 세상에서 가장 멋진 차를 만듭니다.
+# </examples>
 
 final_prompt = ChatPromptTemplate.from_messages(
     [("system", _instructions), _few_shot_prompt, ("human", "<input>{input}</input>")]
 )
-
 # final_prompt = ChatPromptTemplate.from_template(_instructions)
 # llm = ChatAnthropic(
 #     model="claude-3-5-sonnet-20240620",  # claude-3-opus-20240220
