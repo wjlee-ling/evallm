@@ -85,6 +85,7 @@ def translate_df(df, columns, prompt, path):
             )
             parsed = _parse_response(response, columns)
             pd.DataFrame(parsed).T.to_csv(f, header=False, index=False)
+        print(f"Translated {path.name}")
 
 
 def main(path, columns, headless):
