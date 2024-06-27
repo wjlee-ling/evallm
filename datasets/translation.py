@@ -25,12 +25,22 @@ def _complete_anthropic(prompt: str, system_message: str = None):
     _prompt = [
         {"role": "user", "content": prompt},
     ]
-    messages = client.messages.create(
-        model="claude-3-5-sonnet-20240620",
-        max_tokens=4096,
-        messages=_prompt,
-        system=system_message,
-    )
+    try:
+        response = client.messages.with_raw_response.create(
+            model="claude-3-5-sonnet-20240620",
+            max_tokens=4096,
+            messages=_prompt,
+            system=system_message,
+        )
+        messages = (
+            response.parse()
+        )  # get the object that `messages.create()` would have returned
+        print(response.headers)
+
+    except anthropic.RateLimitError as e:
+        print("🚨 Rate limit exceeded...")
+        print(e)
+
     return messages
 
 
@@ -169,7 +179,7 @@ def main(path, columns, headless):
 
     for p in tqdm(load_from_path(path)):
         if p.suffix == ".csv":
-            df = pd.read_csv(p, header=None if headless else 0)
+            df = pd.read_csv(p, header=None if headless else 0)[:2]
         elif p.suffix == ".xlsx":
             df = pd.read_excel(p, header=None if headless else 0)
         if headless:
