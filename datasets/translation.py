@@ -1,6 +1,7 @@
 from datasets.utils import concatenate_columns, load_from_path
 import anthropic
 import json
+import re
 import pandas as pd
 
 from argparse import ArgumentParser
@@ -51,9 +52,18 @@ def _parse_response(response, columns: list) -> dict[int, dict]:
     }
     """
     parsed = {}
-    for idx, row_data in eval(response.content[0].text).items():
-        values = row_data.split(DELIMITER)
-        parsed[idx] = {col: val for col, val in zip(columns, values)}
+    try:
+        for idx, row_data in eval(response.content[0].text).items():
+            values = row_data.split(DELIMITER)
+            parsed[idx] = {col: val for col, val in zip(columns, values)}
+
+    except SyntaxError:
+        # can encounter SyntaxError when `eval`ing the response
+        values = response.content[0].text.strip("{}").split(DELIMITER)
+        for idx, value in enumerate(values):
+            value = re.sub(r"^\"?[0-9]+[\"\s]?:\s?", "", value.strip('"')).strip('"')
+            parsed[idx] = {col: value for col in columns}
+
     return parsed
 
 
@@ -75,6 +85,7 @@ def translate_df(df, columns, prompt, path):
     chunks = [df.iloc[i : i + CHUNK_SIZE] for i in range(0, df.shape[0], CHUNK_SIZE)]
 
     with open(path, "a") as f:
+        print(f"Translating {path.name}...")
         if f.tell() == 0:
             f.write(",".join(columns) + "\n")
 
@@ -85,7 +96,6 @@ def translate_df(df, columns, prompt, path):
             )
             parsed = _parse_response(response, columns)
             pd.DataFrame(parsed).T.to_csv(f, header=False, index=False)
-        print(f"Translated {path.name}")
 
 
 def main(path, columns, headless):
