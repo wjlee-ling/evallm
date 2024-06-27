@@ -35,13 +35,13 @@ def _complete_anthropic(prompt: str, system_message: str = None):
 
 def _format_examples(examples: list[dict]):
     input_examples = json.dumps(
-        {idx: f"user: {ex['input']}" for idx, ex in enumerate(examples)}
+        {idx: f"{ex['input']}" for idx, ex in enumerate(examples)}
     )
     output_examples = json.dumps(
-        {idx: f"assistant: {ex['output']}" for idx, ex in enumerate(examples)}
+        {idx: f"{ex['output']}" for idx, ex in enumerate(examples)}
     )
 
-    return "\n\n".join([f"input: {input_examples}", f"output: {output_examples}"])
+    return "\n\n".join([f"user: {input_examples}", f"assistant: {output_examples}"])
 
 
 def _parse_response(response, columns: list) -> dict[int, dict]:
