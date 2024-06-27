@@ -62,6 +62,8 @@ def _parse_response(response, columns: list) -> dict[int, dict]:
         values = response.content[0].text.strip(" {}").split(DELIMITER)
         for idx, value in enumerate(values):
             value = re.sub(r"^\"?[0-9]+[\"\s]?:\s?", "", value.strip('"'))
+            if idx // CHUNK_SIZE not in parsed:
+                parsed[idx // CHUNK_SIZE] = {}
             parsed[idx // CHUNK_SIZE].update(
                 {col: value for i, col in enumerate(columns) if i == idx % CHUNK_SIZE}
             )
