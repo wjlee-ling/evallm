@@ -59,7 +59,7 @@ def _parse_response(response, columns: list) -> dict[int, dict]:
 
     except SyntaxError:
         # can encounter SyntaxError when `eval`ing the response
-        values = response.content[0].text.strip("{}").split(DELIMITER)
+        values = response.content[0].text.strip(" {}").split(DELIMITER)
         for idx, value in enumerate(values):
             value = re.sub(r"^\"?[0-9]+[\"\s]?:\s?", "", value.strip('"'))
             parsed[idx // CHUNK_SIZE].update(
