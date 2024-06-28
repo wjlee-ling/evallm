@@ -45,12 +45,19 @@ def combine_columns(df, old_cols: list, new_col: str):
     return df
 
 
-df = pd.read_csv(
-    "/Users/lwj/workspace/evallm/mmlu/Test/mmlu_test_1_1566.translated.csv",
-    header=0,
-    index_col=0,
-)
-print(df.head())
+def del_translated_rows(df, standard_cols: list):
+    """Delete rows that have values not 'nan' in standard_cols"""
+    return df[df[standard_cols].apply(lambda x: x.isna().all(), axis=1)]
+
+
+# df = pd.read_csv(
+#     "/Users/lwj/workspace/evallm/MMLU - MMLU_test_0628.csv",
+#     header=0,
+#     index_col=0,
+# )
+# print(df.loc[1567, "MMLU_question_클로드"], type(df.loc[1567, "MMLU_question_클로드"]))
+# new_df = del_translated_rows(df, ["MMLU_question_클로드", "MMLU_question_최종"])
+# print(df.shape, new_df.shape)
 # df = combine_columns(df, ["A1", "A2", "A3", "A4"], "A")
 # df.to_csv("mmlu_test_1_1566.combined.translated.csv", index=True)
 
