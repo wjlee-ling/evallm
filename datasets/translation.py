@@ -111,7 +111,8 @@ def _parse_response(response, columns: list) -> dict[int, dict]:
     """
     parsed = {}
     try:
-        for idx, row_data in eval(response.content[0].text).items():
+        response = json.loads(response.content[0].text)
+        for idx, row_data in response.items():
             parsed[idx] = {col: row_data[col] for col in columns}
             # values = row_data.split(DELIMITER)
             # parsed[idx] = {col: val for col, val in zip(columns, values)}
