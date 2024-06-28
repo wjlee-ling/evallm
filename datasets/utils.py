@@ -1,12 +1,21 @@
 import re
 import os
 import pandas as pd
+import numpy as np
 from glob import glob
 from pathlib import Path
 
 
 def concatenate_columns(row, columns, sep="\t"):
     return sep.join([str(row[col]) for col in columns])
+
+
+def jsonify_columns(row, columns):
+    row_data = {
+        col: (int(row[col]) if isinstance(row[col], np.int64) else row[col])
+        for col in columns
+    }
+    return row_data
 
 
 def load_from_path(path) -> list:
@@ -36,11 +45,14 @@ def combine_columns(df, old_cols: list, new_col: str):
     return df
 
 
-# df = pd.read_csv(
-#     "/Users/lwj/workspace/evallm/mmlu/Test/mmlu_test_1_1553.translated.csv", header=0
-# )
+df = pd.read_csv(
+    "/Users/lwj/workspace/evallm/mmlu/Test/mmlu_test_1_1566.translated.csv",
+    header=0,
+    index_col=0,
+)
+print(df.head())
 # df = combine_columns(df, ["A1", "A2", "A3", "A4"], "A")
-# df.to_csv("mmlu_test_1_1553.combined.translated.csv", index=False)
+# df.to_csv("mmlu_test_1_1566.combined.translated.csv", index=True)
 
 # def combine_csv_files(prefixes, input_dir=".", output_dir="."):
 #     if not os.path.exists(output_dir):
