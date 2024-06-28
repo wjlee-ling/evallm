@@ -228,7 +228,7 @@ def main(path, *, columns, headless, with_index):
                 index_col=0 if with_index else None,
             )
         if headless:
-            df.columns = [str(col) for col in df.columns]
+            df.columns = [f"col{col}" for col in df.columns]
         columns = df.columns.tolist()  # use all the columns
 
         translate_df(
