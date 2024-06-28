@@ -118,7 +118,7 @@ def _parse_response(response, columns: list) -> dict[int, dict]:
             # values = row_data.split(DELIMITER)
             # parsed[idx] = {col: val for col, val in zip(columns, values)}
 
-    except SyntaxError:
+    except:
         # can encounter SyntaxError when `eval`ing the response
         return None
 
