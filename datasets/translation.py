@@ -1,4 +1,4 @@
-from datasets.utils import concatenate_columns, load_from_path
+from datasets.utils import concatenate_columns, load_from_path, jsonify_columns
 import anthropic
 import json
 import re
@@ -35,7 +35,6 @@ def _complete_anthropic(prompt: str, system_message: str = None):
         messages = (
             response.parse()
         )  # get the object that `messages.create()` would have returned
-        print(response.headers)
 
     except anthropic.RateLimitError as e:
         print("🚨 Rate limit exceeded...")
@@ -46,13 +45,40 @@ def _complete_anthropic(prompt: str, system_message: str = None):
 
 def _format_examples(examples: list[dict]):
     input_examples = json.dumps(
-        {idx: f"{ex['input']}" for idx, ex in enumerate(examples)}
+        {idx: f"{ex['user']}" for idx, ex in enumerate(examples)}
     )
     output_examples = json.dumps(
-        {idx: f"{ex['output']}" for idx, ex in enumerate(examples)}
+        {idx: f"{ex['assistant']}" for idx, ex in enumerate(examples)}
     )
 
-    return "\n\n".join([f"user: {input_examples}", f"assistant: {output_examples}"])
+    return "\nshould be translated and structured into\n".join(
+        [f"{input_examples}", f"{output_examples}"]
+    )
+
+
+def _format_chunk(chunk: pd.DataFrame, columns) -> dict[int, str]:
+    """
+    `jsonify_columns` returns:
+    {
+        "0": {
+            "col0": "In which year was the seminal Human Development Report published?",
+            "col1": "It was published in 1990."
+        },
+        "1": {
+            "col0": "Sam bought a car from Tesla. The car dealer offered him a 10% discount, and Sam paid $90,000 for the car. How much was the original price of the car?",
+            "col1": "Its original price was $110,000.",
+            "col2": "Its original price was $100,000."
+        }
+    }
+    """
+    chunk_in_format = {}
+    # for idx, row in chunk.iterrows():
+    # row_data = concatenate_columns(row, columns)
+    for idx in chunk.index:
+        row = chunk.loc[idx]
+        row_data = jsonify_columns(row, columns)
+        chunk_in_format[str(idx)] = row_data
+    return json.dumps(chunk_in_format)
 
 
 def _parse_response(response, columns: list) -> dict[int, dict]:
@@ -81,19 +107,6 @@ def _parse_response(response, columns: list) -> dict[int, dict]:
     return parsed
 
 
-def _format_chunk(chunk: pd.DataFrame, columns) -> dict[int, str]:
-    """
-    {
-        0: "column1\tcolumn2\tcolumn3",
-    }
-    """
-    chunk_in_format = {}
-    for idx, row in chunk.iterrows():
-        row_data = concatenate_columns(row, columns)
-        chunk_in_format[idx] = row_data
-    return json.dumps(chunk_in_format)
-
-
 def translate_df(df, columns, prompt, path):
     instruct_prompt = prompt.lstrip("Human: ")
     chunks = [df.iloc[i : i + CHUNK_SIZE] for i in range(0, df.shape[0], CHUNK_SIZE)]
@@ -112,38 +125,62 @@ def translate_df(df, columns, prompt, path):
             pd.DataFrame(parsed).T.to_csv(f, header=False, index=False)
 
 
-def main(path, columns, headless):
-
+def main(path, *, columns, headless, with_index):
     _examples = [
         {
-            "input": DELIMITER.join(
-                [
-                    "In which year was the seminal Human Development Report published?",
-                    "It was published in 1990.",
-                ]
-            ),
-            "output": DELIMITER.join(
-                [
-                    "중요한 인간 개발 보고서(Human Development Report)는 몇 년도에 발행되었나요?",
-                    "보고서는 1990년에 발행되었습니다.",
-                ]
-            ),
+            "user": {
+                "col0": "In which year was the seminal Human Development Report published?",
+                "col1": "It was published in 1990.",
+            },
+            "assistant": {
+                "col0": "큰 영향력을 갖게 되었던 인간 개발 보고서(Human Development Report)는 몇 년도에 발행되었나요?",
+                "col1": "보고서는 1990년에 발행되었습니다.",
+            },
         },
         {
-            "input": DELIMITER.join(
-                [
-                    "Sam wants to go to bed.",
-                    "Tesla makes the coolest car in the world.",
-                ]
-            ),
-            "output": DELIMITER.join(
-                [
-                    "민호는 자려고 합니다.",
-                    "기아는 세상에서 가장 멋진 차를 만듭니다.",
-                ]
-            ),
+            "user": {
+                "col0": "Sam bought a car from Tesla. The car dealer offered him a 10% discount, and Sam paid $90,000 for the car. How much was the original price of the car?",
+                "col1": "Its original price was $110,000.",
+                "col2": "Its original price was $100,000.",
+            },
+            "assistant": {
+                "col0": "민수는 기아의 차를 샀습니다. 차 판매자는 그에게 10% 할인을 제공했고, 민수는 차를 $90,000에 샀습니다. 차의 원래 판매가는 얼마였나요?",
+                "col1": "차의 판매가는 $110,000이었습니다.",
+                "col2": "차의 판매가는 $100,000이었습니다.",
+            },
         },
     ]
+
+    # _examples = [
+    #     {
+    #         "input": DELIMITER.join(
+    #             [
+    #                 "In which year was the seminal Human Development Report published?",
+    #                 "It was published in 1990.",
+    #             ]
+    #         ),
+    #         "output": DELIMITER.join(
+    #             [
+    #                 "중요한 인간 개발 보고서(Human Development Report)는 몇 년도에 발행되었나요?",
+    #                 "보고서는 1990년에 발행되었습니다.",
+    #             ]
+    #         ),
+    #     },
+    #     {
+    #         "input": DELIMITER.join(
+    #             [
+    #                 "Sam wants to go to bed.",
+    #                 "Tesla makes the coolest car in the world.",
+    #             ]
+    #         ),
+    #         "output": DELIMITER.join(
+    #             [
+    #                 "민호는 자려고 합니다.",
+    #                 "기아는 세상에서 가장 멋진 차를 만듭니다.",
+    #             ]
+    #         ),
+    #     },
+    # ]
     # _example_[pr]ompt = ChatPromptTemplate.from_messages(
     #     [("user", "{input}"), ("assistant", "{output}")]  # 🚨 Anthropic: user/assistant
     # )
@@ -179,20 +216,31 @@ def main(path, columns, headless):
 
     for p in tqdm(load_from_path(path)):
         if p.suffix == ".csv":
-            df = pd.read_csv(p, header=None if headless else 0)[:2]
+            df = pd.read_csv(
+                p,
+                header=None if headless else 0,
+                index_col=0 if with_index else None,
+            )
         elif p.suffix == ".xlsx":
-            df = pd.read_excel(p, header=None if headless else 0)
+            df = pd.read_excel(
+                p,
+                header=None if headless else 0,
+                index_col=0 if with_index else None,
+            )
         if headless:
             df.columns = [str(col) for col in df.columns]
         columns = df.columns.tolist()  # use all the columns
-        translate_df(df, columns, instruct_prompt, p.with_suffix(".translated.csv"))
+
+        translate_df(
+            df,
+            columns,
+            instruct_prompt,
+            p.with_suffix(".translated.csv"),
+        )
 
         # # fill in missing columns
         # new_df = new_df.combine_first(df)
         # new_df.to_csv(p.with_suffix(".translated.csv"), index=False)
-        import time
-
-        time.sleep(60)
 
 
 # chain = final_prompt | llm
@@ -211,6 +259,12 @@ if __name__ == "__main__":
     parser = ArgumentParser()
     parser.add_argument("path", type=str)
     parser.add_argument("--headless", action="store_true")
+    parser.add_argument("--with-index", action="store_true")
     parser.add_argument("--columns", nargs="+")
     args = parser.parse_args()
-    output = main(path=args.path, columns=args.columns, headless=args.headless)
+    output = main(
+        path=args.path,
+        columns=args.columns,
+        headless=args.headless,
+        with_index=args.with_index,
+    )
