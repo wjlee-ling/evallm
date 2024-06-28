@@ -255,7 +255,11 @@ def main(path, *, columns, headless, with_index, start_index):
             df,
             columns,
             instruct_prompt,
-            p.with_suffix(".translated.csv"),
+            (
+                p.with_suffix(f".from_{start_index}.translated.csv")
+                if start_index
+                else p.with_suffix(".translated.csv")
+            ),
         )
 
         # # fill in missing columns
