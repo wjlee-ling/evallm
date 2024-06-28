@@ -57,7 +57,7 @@ def _complete_anthropic(messages: list[dict], system_message: str = None):
         messages = (
             response.parse()
         )  # get the object that `messages.create()` would have returned
-
+        print(response.headers)
     except anthropic.RateLimitError as e:
         print("🚨 Rate limit exceeded...")
         print(e)
@@ -240,6 +240,8 @@ def main(path, *, columns, headless, with_index):
             )
         if headless:
             df.columns = [f"col{col}" for col in df.columns]
+        if columns:
+            df = df[columns]
         columns = df.columns.tolist()  # use all the columns
 
         translate_df(
