@@ -130,7 +130,7 @@ def translate_df(df, columns, prompt, path):
     with open(path, "a") as f:
         print(f"Translating {path.name}...")
         if f.tell() == 0:
-            f.write(",".join(columns) + "\n")
+            f.write(",".join(["id"] + columns) + "\n")
 
         for chunk in tqdm(chunks):
             formatted_rows = _format_chunk(chunk, columns)
@@ -151,9 +151,12 @@ def translate_df(df, columns, prompt, path):
                 )
                 parsed = _parse_response(response, columns)
                 if parsed is None:
-                    continue
+                    parsed = {
+                        idx: {col: response.content[0].text for col in columns}
+                        for idx in chunk.index
+                    }
 
-            pd.DataFrame(parsed).T.to_csv(f, header=False, index=False)
+            pd.DataFrame(parsed).T.to_csv(f, header=False, index=True)
 
 
 def main(path, *, columns, headless, with_index):
