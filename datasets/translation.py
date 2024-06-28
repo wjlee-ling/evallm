@@ -33,6 +33,7 @@ TEMPLATE = """당신은 한국어 번역가로서 영어 문장을 한국어로 
 7. 전문 용어나 어려운 용어는 영어 원문 단어를 중괄호 안에 넣어 번역하세요. 예를 들어 '항정신성 약물(Antisychotics)은 ...'와 같이 표기합니다.
 8. 문제 형식의 텍스트를 번역할 때는 정답을 추론하거나 표시하지 마세요. 주어진 텍스트만 번역하고 추가적인 설명이나 해석을 덧붙이지 마세요. 번역 시 의심스러운 부분이 있더라도 추측하지 마세요.
 9. 원문의 형식을 그대로 유지하세요. 선택지, 정답 표시, json 포맷 등 원문의 구조적 요소를 변경하지 마세요.
+10. None 또는 nan, null 은 '없음'으로 번역하세요. 
 </guidelines>
 
 <examples>
@@ -113,7 +114,7 @@ def _parse_response(response, columns: list) -> dict[int, dict]:
     try:
         response = json.loads(response.content[0].text)
         for idx, row_data in response.items():
-            parsed[idx] = {col: row_data[col] for col in columns}
+            parsed[idx] = {col: str(row_data[col]) for col in columns}
             # values = row_data.split(DELIMITER)
             # parsed[idx] = {col: val for col, val in zip(columns, values)}
 
@@ -160,7 +161,7 @@ def translate_df(df, columns, prompt, path):
             pd.DataFrame(parsed).T.to_csv(f, header=False, index=True)
 
 
-def main(path, *, columns, headless, with_index):
+def main(path, *, columns, headless, with_index, start_index):
     _examples = [
         {
             "user": {
@@ -246,6 +247,8 @@ def main(path, *, columns, headless, with_index):
             df.columns = [f"col{col}" for col in df.columns]
         if columns:
             df = df[columns]
+        if start_index:
+            df = df.loc[start_index:]
         columns = df.columns.tolist()  # use all the columns
 
         translate_df(
@@ -278,10 +281,12 @@ if __name__ == "__main__":
     parser.add_argument("--headless", action="store_true")
     parser.add_argument("--with-index", action="store_true")
     parser.add_argument("--columns", nargs="+")
+    parser.add_argument("--start-index", type=int)
     args = parser.parse_args()
     output = main(
         path=args.path,
         columns=args.columns,
         headless=args.headless,
         with_index=args.with_index,
+        start_index=args.start_index,
     )
