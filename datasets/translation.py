@@ -41,7 +41,7 @@ TEMPLATE = """당신은 한국어 번역가로서 영어 문장을 한국어로 
 </examples>"""
 
 TEMPLATE_RETRY = """Your answer seems to have some issues with <guidelines> and <examples> above in terms of the format and the structure. Look carefully at the uses of quotes or commas and fix them if they would prevent valid json formatting\
-Please check the format and the guidelines and provide again the Korean translations **without any explanations** in the right format."""
+Please check the format and the guidelines and provide again the Korean translations **without any explanations** in the correct **json** format."""
 
 client = anthropic.Anthropic()
 
@@ -119,8 +119,15 @@ def _parse_response(response, columns: list) -> dict[int, dict]:
             # parsed[idx] = {col: val for col, val in zip(columns, values)}
 
     except:
-        # can encounter SyntaxError when `eval`ing the response
-        return None
+        response = re.sub("'", r"\"", response.content[0].text)
+        response = re.sub(r"\"\"", r"\"", response)
+
+        try:
+            response = json.loads(response)
+            for idx, row_data in response.items():
+                parsed[idx] = {col: str(row_data[col]) for col in columns}
+        except:
+            return None
 
     return parsed
 
