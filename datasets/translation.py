@@ -121,6 +121,7 @@ def _parse_response(response, columns: list) -> dict[int, dict]:
     except:
         response = re.sub("'", r"\"", response.content[0].text)
         response = re.sub(r"\"\"", r"\"", response)
+        response = '"' + response.strip('"') + '"'
 
         try:
             response = json.loads(response)
